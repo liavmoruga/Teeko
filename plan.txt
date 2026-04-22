@@ -1,0 +1,23 @@
+├── main.py                
+│
+├── assets/                 
+│   ├── images/             
+│   └── fonts/              
+│
+├── data/                   
+│   ├── dictionary.csv      
+│   └── teeko_model.keras   
+│
+├── src/                  
+│   ├── board.py            (symmetry)
+│   ├── player.py (abstract + RandomPlayer + MLPlayer + HumanPlayer)   
+│   ├── game.py      (save history) 
+│   ├── tournament.py       
+│   ├── model_manager.py    (training)
+│   └── graphics.py         
+│
+├── docs/                   
+│   └── project_portfolio.docx  
+│
+├── .gitignore              
+└── README.md
