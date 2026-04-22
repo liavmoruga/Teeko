@@ -57,9 +57,9 @@ class Game:
             self.board.grid[r1, c1] = 0
             # Place piece in new spot
             self.board.grid[r2, c2] = self.current_player
-            
-        # Switch turns
+        
         self.current_player *= -1
+        self.moves_played += 1
     
     def check_game_over(self):
             # Check if the previous player won (since turns switch after a move)

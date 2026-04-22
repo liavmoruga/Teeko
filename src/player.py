@@ -61,3 +61,32 @@ class SmartPlayer(Player):
                 best_move = move
 
         return best_move
+    
+
+class HumanPlayer(Player):
+    def get_move(self, game_state):
+        valid_moves = game_state.get_valid_moves()
+        
+        while True:
+            # Indicate the current phase so the user knows what input is expected
+            print(f"\nPlayer {self.symbol}'s turn. Phase: {game_state.phase.upper()}")
+            
+            try:
+                if game_state.phase == 'drop':
+                    user_input = input("Enter drop coords (row col) e.g., '2 3': ")
+                    r, c = map(int, user_input.split())
+                    move = ('drop', r, c)
+                else:
+                    user_input = input("Enter move coords (r1 c1 r2 c2) e.g., '2 3 3 4': ")
+                    r1, c1, r2, c2 = map(int, user_input.split())
+                    move = ('move', r1, c1, r2, c2)
+                    
+                # Validate the parsed move against the engine's legal moves
+                if move in valid_moves:
+                    return move
+                else:
+                    print("ERROR: Invalid move. It might be occupied or against the rules. Try again.")
+                    
+            except ValueError:
+                # Catch cases where the user typed letters or wrong number of coordinates
+                print("ERROR: Invalid format. Please use integers separated by spaces.")
