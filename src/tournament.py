@@ -57,7 +57,8 @@ class Tournament:
                     
                 if save_dataset:
                     state = game.board.get_canonical_state()
-                    current_game_states.append(state)
+                    # We MUST save whose turn it is alongside the board state
+                    current_game_states.append((state, game.current_player))
                     
                 game.make_move(move)
             
@@ -70,10 +71,12 @@ class Tournament:
                 self.draws += 1
                 
             # Save data if enabled and there's a clear winner
+            # Save data if enabled and there's a clear winner
             if save_dataset and winner != 0:
                 label = 1 if winner == 1 else 0
-                for state in current_game_states:
-                    row = list(state) + [label]
+                for state_tuple, turn in current_game_states:
+                    # Convert tuple to list, add the turn, and add the label
+                    row = list(state_tuple) + [turn, label]
                     self.dataset.append(row)
                     
         # Force the progress bar to show 100% when the loop finishes
@@ -96,14 +99,15 @@ class Tournament:
         print("-" * 35)
 
     def save_to_csv(self):
-        filename = 'teeko_dataset.csv'
+        filename = 'dataset.csv'
         if not self.dataset:
             print("No data to save.")
             return
             
         with open(filename, 'w', newline='') as f:
             writer = csv.writer(f)
-            header = [f'pos_{i}' for i in range(25)] + ['label']
+            # Create header row: 25 squares, 1 turn indicator, 1 label
+            header = [f'pos_{i}' for i in range(25)] + ['turn', 'label']
             writer.writerow(header)
             writer.writerows(self.dataset)
             

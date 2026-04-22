@@ -9,4 +9,4 @@ p2 = RandomPlayer(-1)
 tourney = Tournament(p1, p2, num_games=100)
 
 # Run the tournament AND save the dataset
-tourney.play(save_dataset=False)
+tourney.play(save_dataset=True)
