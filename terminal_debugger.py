@@ -1,6 +1,6 @@
 import time
 from src.game import Game
-from src.player import RandomPlayer, HumanPlayer
+from src.player import RandomPlayer, TerminalPlayer
 
 def play_terminal_game(player1, player2, delay=0.5):
     game = Game()
@@ -30,7 +30,7 @@ def play_terminal_game(player1, player2, delay=0.5):
         current_p = players[game.current_player]
         
         # 3. Apply delay ONLY if both players are NOT humans (Bot vs Bot)
-        if not isinstance(player1, HumanPlayer) and not isinstance(player2, HumanPlayer):
+        if not isinstance(player1, TerminalPlayer) and not isinstance(player2, TerminalPlayer):
             time.sleep(delay)
             
         # 4. Get and apply the move

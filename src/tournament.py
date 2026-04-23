@@ -1,5 +1,4 @@
 import csv
-from src.board import Board
 from src.game import Game
 
 class Tournament:
@@ -14,55 +13,37 @@ class Tournament:
         self.player2_wins = 0
         self.draws = 0
 
-    def print_progress_bar(self, iteration, total, length=50):
-        # Calculates the percentage and formats the bar string
-        percent = ("{0:.1f}").format(100 * (iteration / float(total)))
-        filled_length = int(length * iteration // total)
-        bar = '█' * filled_length + '-' * (length - filled_length)
-        
-        # \r brings the cursor back to the start of the line to overwrite it
-        print(f'\rProgress: |{bar}| {percent}% Complete [{iteration}/{total}]', end='\r')
-        
-        # Print a new line on completion so the next print doesn't overwrite the bar
-        if iteration == total:
-            print()
-
-    def play(self, save_dataset=False):
+    def play(self, save_dataset=False, max_moves=100, moves_before_finish=20, gamma=0.9, min_diff=0.05, save_draws=False):
         print(f"Starting tournament: {self.num_games} games.")
-        print(f"Player 1 ({type(self.player1).__name__}) VS Player 2 ({type(self.player2).__name__})")
-        print(f"Saving dataset: {save_dataset}\n")
+
+        if save_dataset:
+            print(f"Config: Max Moves: {max_moves}, Moves Before Finish: {moves_before_finish} Gamma: {gamma}, Min Diff: {min_diff}")
         
         for i in range(self.num_games):
-            # Update the progress bar at the start of each game
             self.print_progress_bar(i, self.num_games)
             
             game = Game()
             players = {1: self.player1, -1: self.player2}
-            
             current_game_states = []
+            moves_count = 0
+            winner = 0
             
-            # Game loop
-            while True:
-                winner = game.check_game_over()
-                
-                if winner is not None:
-                    break
-                    
+            # Game loop controlled by tournament limits
+            while moves_count < max_moves and winner == 0:                    
                 current_p = players[game.current_player]
                 move = current_p.get_move(game)
-                
-                if not move:
-                    winner = 0 
-                    break 
                     
                 if save_dataset:
                     state = game.board.get_canonical_state()
-                    # We MUST save whose turn it is alongside the board state
                     current_game_states.append((state, game.current_player))
                     
                 game.make_move(move)
-            
-            # Update statistics based on the game outcome
+                winner = game.check_game_over()
+
+                moves_count += 1
+
+
+            # Update statistics
             if winner == 1:
                 self.player1_wins += 1
             elif winner == -1:
@@ -70,32 +51,50 @@ class Tournament:
             else:
                 self.draws += 1
                 
-            # Save data if enabled and there's a clear winner
-            # Save data if enabled and there's a clear winner
-            if save_dataset and winner != 0:
-                label = 1 if winner == 1 else 0
-                for state_tuple, turn in current_game_states:
-                    # Convert tuple to list, add the turn, and add the label
-                    row = list(state_tuple) + [turn, label]
-                    self.dataset.append(row)
+            # Data extraction logic
+            if save_dataset:
+                # Save if there's a winner OR if it's a draw and save_draws is True
+                if winner != 0 or save_draws:
+                    self._extract_game_data(current_game_states, winner, moves_before_finish, gamma, min_diff)
                     
-        # Force the progress bar to show 100% when the loop finishes
         self.print_progress_bar(self.num_games, self.num_games)
         print("\nTournament finished!")
-        
-        # Print the final stats
         self.print_results()
         
-        # Save to file if required
         if save_dataset:
             self.save_to_csv()
 
+    def _extract_game_data(self, game_states, winner, moves_before_finish, gamma, min_diff):
+            total_moves = len(game_states)
+            start_idx = max(0, total_moves - moves_before_finish)
+            
+            for idx in range(start_idx, total_moves):
+                state_tuple, turn = game_states[idx]
+                distance_from_end = total_moves - 1 - idx
+                
+                if winner == 0:
+                    decayed_label = 0.5
+                else:
+                    decayed_label = 0.5 + (0.5 * winner * (gamma ** distance_from_end))
+
+                final_label = round(decayed_label, 4)
+
+                if winner == 0 or abs(final_label - 0.5) > min_diff:
+                    self.dataset.append(list(state_tuple) + [turn, final_label])
+
+    def print_progress_bar(self, iteration, total, length=50):
+        percent = ("{0:.1f}").format(100 * (iteration / float(total)))
+        filled_length = int(length * iteration // total)
+        bar = '█' * filled_length + '-' * (length - filled_length)
+        print(f'\rProgress: |{bar}| {percent}% Complete [{iteration}/{total}]', end='\r')
+        if iteration == total: print()
+
     def print_results(self):
         print("-" * 35)
-        print("Tournament Results:")
-        print(f"Player 1 Wins: {self.player1_wins} ({(self.player1_wins/self.num_games)*100:.1f}%)")
-        print(f"Player 2 Wins: {self.player2_wins} ({(self.player2_wins/self.num_games)*100:.1f}%)")
-        print(f"Draws:         {self.draws} ({(self.draws/self.num_games)*100:.1f}%)")
+        print(f"Results for {self.num_games} games:")
+        print(f"P1 Wins: {self.player1_wins} ({(self.player1_wins/self.num_games)*100:.1f}%)")
+        print(f"P2 Wins: {self.player2_wins} ({(self.player2_wins/self.num_games)*100:.1f}%)")
+        print(f"Draws:   {self.draws} ({(self.draws/self.num_games)*100:.1f}%)")
         print("-" * 35)
 
     def save_to_csv(self):
@@ -106,10 +105,8 @@ class Tournament:
             
         with open(filename, 'w', newline='') as f:
             writer = csv.writer(f)
-            # Create header row: 25 squares, 1 turn indicator, 1 label
             header = [f'pos_{i}' for i in range(25)] + ['turn', 'label']
             writer.writerow(header)
             writer.writerows(self.dataset)
             
-        print(f"Dataset successfully saved to {filename}!")
-        print(f"Total valid board states collected: {len(self.dataset)}")
+        print(f"Dataset saved: {len(self.dataset)} valid states.")

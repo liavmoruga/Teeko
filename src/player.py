@@ -63,7 +63,7 @@ class SmartPlayer(Player):
         return best_move
     
 
-class HumanPlayer(Player):
+class TerminalPlayer(Player):
     def get_move(self, game_state):
         valid_moves = game_state.get_valid_moves()
         
