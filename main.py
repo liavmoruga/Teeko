@@ -6,6 +6,8 @@ import os
 
 def f1():
     print("Goal: High signal, precise endgame data to prove model capability.")
+    p1 = RandomPlayer()
+    p2 = RandomPlayer()
     t = Tournament(p1, p2, num_games=20000)
     t.play(
             save_dataset=True, 
