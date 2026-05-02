@@ -1,87 +1,77 @@
-import time
 import os
+import time
 from src.game import Game
-from src.player import RandomPlayer, TerminalPlayer, SmartPlayer, MinimaxPlayer
+from src.player import RandomPlayer
+# from src.player import SmartPlayer, MinimaxPlayer
 
-def clear_screen():
-    """Clears the terminal screen for a clean UI."""
+def clear():
+    """Clears the terminal screen."""
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def play_terminal_game(player1, player2, delay=0.5):
-    game = Game()
-    players = {1: player1, -1: player2}
-    
-    # Check if there's a human playing to adjust UI flow
-    has_human = isinstance(player1, TerminalPlayer) or isinstance(player2, TerminalPlayer)
-    moves_count = 1
-    
-    clear_screen()
-    
-    while True:
-        # 1. UI Header
-        print("\n" + "="*35)
-        print("      === TEEKO ARENA ===")
-        print("="*35)
+def get_human_move(game):
+    """Handles terminal input for a human player."""
+    valid_moves = game.get_valid_moves()
+    if not valid_moves: 
+        return None
         
-        # 2. Check for game over
-        winner = game.check_game_over()
-        if winner != 0:
-            print("\nFINAL BOARD:")
-            game.board.print_board()
-            print(f"\n🏆 RESULT: Player {winner} WINS! 🏆\n")
-            break
+    while True:
+        try:
+            prompt = "DROP (r c) >> " if game.phase == 'drop' else "MOVE (r1 c1 r2 c2) >> "
+            inp = [int(x) for x in input(prompt).strip().split()]
+            move = ('drop', inp[0], inp[1]) if game.phase == 'drop' else ('move', inp[0], inp[1], inp[2], inp[3])
             
-        # 3. Display the board
-        print(f"\nTurn: {moves_count} | Phase: {game.phase.upper()}")
+            if move in valid_moves: 
+                return move
+            print("Illegal move.")
+        except (ValueError, IndexError):
+            print("Invalid format. Use numbers separated by spaces.")
+
+def run_terminal_arena(bots):
+    clear()
+    print("=== TEEKO TERMINAL ===")
+    options = ["Human"] + list(bots.keys())
+    for i, opt in enumerate(options): 
+        print(f"{i}. {opt}")
+    
+    try:
+        players = {
+            1: "Human" if (p1 := options[int(input("\nSelect P1 (Black): "))]) == "Human" else bots[p1],
+           -1: "Human" if (p2 := options[int(input("Select P2 (Red): "))]) == "Human" else bots[p2]
+        }
+    except (ValueError, IndexError):
+        print("Invalid selection. Exiting.")
+        return
+        
+    game = Game()
+    clear()
+    
+    while game.check_game_over() == 0:
+        print(f"Phase: {game.phase.upper()} | Turn: {'Black (1)' if game.current_player == 1 else 'Red (-1)'}")
         game.board.print_board()
         
         current_p = players[game.current_player]
         
-        # 4. Apply delay ONLY if it's Bot vs Bot
-        if not has_human:
-            time.sleep(delay)
-            clear_screen() # Clear before next bot move
+        if current_p != "Human":
+            time.sleep(0.5)
             
-        # 5. Get move
-        move = current_p.get_move(game)
+        move = get_human_move(game) if current_p == "Human" else current_p.get_move(game)
         
-        if not move:
-            print("\nRESULT: No valid moves left. DRAW.")
+        if not move: 
             break
             
-        # 6. Apply move
         game.make_move(move)
-        moves_count += 1
+        clear()
         
-        # 7. Clean up for human players
-        if has_human:
-            clear_screen()
-            # Print last action so human knows what the bot did
-            if move[0] == 'drop':
-                print(f"[!] Player {game.current_player * -1} dropped at ({move[1]}, {move[2]})")
-            else:
-                print(f"[!] Player {game.current_player * -1} moved from ({move[1]}, {move[2]}) to ({move[3]}, {move[4]})")
+        action = f"dropped at {move[1]},{move[2]}" if move[0] == 'drop' else f"moved {move[1]},{move[2]} -> {move[3]},{move[4]}"
+        print(f"Player {game.current_player * -1} {action}\n")
+        
+    game.board.print_board()
+    winner = game.check_game_over()
+    print(f"RESULT: {'DRAW' if winner == 0 else f'Player {winner} WINS'}")
 
-
-# --- EXECUTION MENU ---
 if __name__ == "__main__":
-    clear_screen()
-    print("Welcome to Teeko Debugger")
-    print("1. Watch: Bot vs Bot")
-    print("2. Play: Human vs Bot")
-    print("3. Play: Human vs Human")
-    
-    choice = input("\nSelect mode (1/2/3): ").strip()
-    if choice == '1':
-            p1 = SmartPlayer(model_path=os.path.join('data', 'model1.keras'), player_id=1)
-            p2 = MinimaxPlayer(model_path=os.path.join('data', 'model1.keras'), player_id=-1, depth=2)
-            play_terminal_game(p1, p2, delay=0)
-    elif choice == '2':
-        # You play as Player 1, Bot is Player -1
-        play_terminal_game(TerminalPlayer(), RandomPlayer())
-    elif choice == '3':
-        play_terminal_game(TerminalPlayer(), TerminalPlayer())
-    else:
-        print("Invalid choice. Exiting.")
-
-
+    # Add available bots here
+    available_bots = {
+        "Random Bot": RandomPlayer()
+    }
+    run_terminal_arena(available_bots)

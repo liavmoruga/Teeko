@@ -1,4 +1,4 @@
-from src.player import RandomPlayer, SmartPlayer, MinimaxPlayer
+from src.player import RandomPlayer, SmartPlayer
 from src.tournament import Tournament
 import time
 import os
@@ -36,7 +36,7 @@ def f2():
 
 def f3():
     p1 = SmartPlayer(model_path=os.path.join('data', 'model1.keras'), player_id=1)
-    p2 = MinimaxPlayer(model_path=os.path.join('data', 'model1.keras'), player_id=-1, depth=3)
+    p2 = RandomPlayer()
     t = Tournament(p1, p2, num_games=10)
     t.play(save_dataset=False)
 
